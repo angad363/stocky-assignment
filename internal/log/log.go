@@ -1,0 +1,14 @@
+package log
+
+import (
+	"github.com/sirupsen/logrus"
+)
+
+func NewLogger() *logrus.Logger {
+	logger := logrus.New()
+	logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
+	logger.SetLevel(logrus.InfoLevel)
+	return logger
+}
