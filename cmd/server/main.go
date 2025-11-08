@@ -11,10 +11,9 @@ func main() {
 	cfg := config.Load()
 	logger := log.NewLogger()
 
-	// Connect to DB
 	conn := db.Connect(cfg)
 	defer conn.Close()
 
-	srv := server.NewServer(logger)
+	srv := server.NewServer(logger, conn)
 	srv.Start(cfg.ServerPort)
 }

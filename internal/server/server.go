@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/angad363/stocky-assignment/internal/price"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -11,7 +12,7 @@ type Server struct {
 	logger *logrus.Logger
 }
 
-func NewServer(logger *logrus.Logger) *Server {
+func NewServer(logger *logrus.Logger,  conn *sqlx.DB) *Server {
 	r := gin.Default()
 
 	// Initialize Redis for price service
@@ -20,6 +21,8 @@ func NewServer(logger *logrus.Logger) *Server {
 	// Initialize price service
 	priceService := price.NewPriceService(price.RedisConn)
 	priceHandler := price.NewPriceHandler(priceService)
+
+	price.StartPriceUpdater(priceService, conn)
 
 	s := &Server{
 		router: r,
