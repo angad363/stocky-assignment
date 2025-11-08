@@ -16,5 +16,5 @@ func main() {
 	defer conn.Close()
 
 	srv := server.NewServer(logger)
-	srv.Run(cfg.ServerPort)
+	srv.Start(cfg.ServerPort)
 }
