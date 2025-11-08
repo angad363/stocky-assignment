@@ -3,6 +3,7 @@ package reward
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -50,4 +51,30 @@ func (h *RewardHandler) CreateReward(c *gin.Context) {
 	_, _ = h.idemService.CheckOrSet(ctx, idemKey, reward)
 
 	c.JSON(http.StatusCreated, reward)
+}
+
+func (h *RewardHandler) GetTodayRewards(c *gin.Context) {
+	userIDStr := c.Param("userId")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid userId"})
+		return
+	}
+
+	ctx := context.Background()
+	rewards, err := h.service.GetTodayRewards(ctx, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch rewards"})
+		return
+	}
+
+	// make sure we return an empty list not null
+	if rewards == nil {
+		rewards = []Reward{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user_id":       userID,
+		"rewards_today": rewards,
+	})
 }

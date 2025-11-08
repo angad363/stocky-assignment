@@ -62,3 +62,28 @@ func (s *RewardService) CreateReward(ctx context.Context, req RewardRequest) (Re
 
 	return reward, err
 }
+
+func (s *RewardService) GetTodayRewards(ctx context.Context, userID int) ([]Reward, error) {
+	rewards := []Reward{}
+
+	loc, _ := time.LoadLocation("Asia/Kolkata")
+	now := time.Now().In(loc)
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	endOfDay := startOfDay.Add(24 * time.Hour)
+
+	query := `
+		SELECT id, user_id, stock_symbol, quantity, rewarded_at
+		FROM rewards
+		WHERE user_id = $1
+		  AND rewarded_at >= $2
+		  AND rewarded_at < $3
+		ORDER BY rewarded_at DESC
+	`
+
+	err := s.db.SelectContext(ctx, &rewards, query, userID, startOfDay, endOfDay)
+	if err != nil {
+		return nil, err
+	}
+
+	return rewards, nil
+}
