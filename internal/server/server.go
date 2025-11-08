@@ -2,6 +2,8 @@ package server
 
 import (
 	"github.com/angad363/stocky-assignment/internal/price"
+	"github.com/angad363/stocky-assignment/internal/reward"
+	"github.com/angad363/stocky-assignment/internal/users"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
@@ -24,21 +26,34 @@ func NewServer(logger *logrus.Logger,  conn *sqlx.DB) *Server {
 
 	price.StartPriceUpdater(priceService, conn)
 
+	idemService := reward.NewIdempotencyService(price.RedisConn)
+	rewardService := reward.NewRewardService(conn, priceService)
+	rewardHandler := reward.NewRewardHandler(rewardService, idemService)
+
+	userService := users.NewUserService(conn, rewardService)
+	userHandler := users.NewUserHandler(userService)
+
+
 	s := &Server{
 		router: r,
 		logger: logger,
 	}
 
-	s.registerRoutes(priceHandler)
+	s.registerRoutes(priceHandler, rewardHandler, userHandler)
 	return s
 }
 
-func (s *Server) registerRoutes(priceHandler *price.PriceHandler) {
+func (s *Server) registerRoutes(priceHandler *price.PriceHandler,
+								rewardHandler *reward.RewardHandler,
+								userHandler *users.UserHandler,
+							) {
 	s.router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
 	s.router.GET("/price", priceHandler.GetPrice)
+	s.router.POST("/reward", rewardHandler.CreateReward)
+	s.router.POST("/register", userHandler.Register)
 }
 
 func (s *Server) Start(port string) {

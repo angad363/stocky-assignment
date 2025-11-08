@@ -1,0 +1,53 @@
+package reward
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+type RewardHandler struct {
+	service     *RewardService
+	idemService *IdempotencyService
+}
+
+func NewRewardHandler(service *RewardService, idem *IdempotencyService) *RewardHandler {
+	return &RewardHandler{service: service, idemService: idem}
+}
+
+func (h *RewardHandler) CreateReward(c *gin.Context) {
+	var req RewardRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	idemKey := c.GetHeader("Idempotency-Key")
+	if idemKey == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Idempotency-Key header is required"})
+		return
+	}
+
+	ctx := context.Background()
+
+	// Step 1: Check idempotency
+	exists, _ := h.idemService.CheckOrSet(ctx, idemKey, nil)
+	if exists {
+		c.JSON(http.StatusConflict, gin.H{"error": "Duplicate reward request detected"})
+		return
+	}
+
+
+	// Step 2: Create reward
+	reward, err := h.service.CreateReward(ctx, req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create reward"})
+		return
+	}
+
+	// Step 3: Save response in cache for idempotency replay
+	_, _ = h.idemService.CheckOrSet(ctx, idemKey, reward)
+
+	c.JSON(http.StatusCreated, reward)
+}
