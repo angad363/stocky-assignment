@@ -56,7 +56,7 @@ func (s *Server) registerRoutes(priceHandler *price.PriceHandler,
 	s.router.POST("/register", userHandler.Register)
 	s.router.GET("/today-stocks/:userId", rewardHandler.GetTodayRewards)
 	s.router.GET("/historical-inr/:userId", rewardHandler.GetHistoricalINR)
-
+	s.router.GET("/stats/:userId", rewardHandler.GetUserStats)
 }
 
 func (s *Server) Start(port string) {

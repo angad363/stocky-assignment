@@ -2,6 +2,7 @@ package reward
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -96,5 +97,37 @@ func (h *RewardHandler) GetHistoricalINR(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"user_id":        userID,
 		"historical_inr": data,
+	})
+}
+
+func (h *RewardHandler) GetUserStats(c *gin.Context) {
+	userIDParam := c.Param("userId")
+	if userIDParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "userId is required"})
+		return
+	}
+
+	var userID int
+	_, err := fmt.Sscan(userIDParam, &userID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid userId"})
+		return
+	}
+
+	ctx := context.Background()
+	todaySummary, totalValue, err := h.service.GetUserStats(ctx, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch stats"})
+		return
+	}
+
+	if todaySummary == nil {
+		todaySummary = make(map[string]float64)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user_id":             userID,
+		"today_summary":       todaySummary,
+		"portfolio_value_inr": totalValue,
 	})
 }
