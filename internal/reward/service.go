@@ -94,7 +94,7 @@ func (s *RewardService) GetHistoricalINR(ctx context.Context, userID int) ([]His
 		SELECT stock_symbol, quantity, rewarded_at
 		FROM rewards
 		WHERE user_id = $1
-		  AND rewarded_at < CURRENT_DATE
+		  AND (rewarded_at AT TIME ZONE 'Asia/Kolkata')::date < CURRENT_DATE
 		ORDER BY rewarded_at ASC
 	`, userID)
 	if err != nil {
