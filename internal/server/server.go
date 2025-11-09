@@ -60,6 +60,8 @@ func (s *Server) registerRoutes(priceHandler *price.PriceHandler,
 	s.router.GET("/historical-inr/:userId", rewardHandler.GetHistoricalINR)
 	s.router.GET("/stats/:userId", rewardHandler.GetUserStats)
 	s.router.POST("/refer", referralHandler.CreateReferral)
+	s.router.GET("/portfolio/:userId", rewardHandler.GetUserPortfolio)
+
 }
 
 func (s *Server) Start(port string) {

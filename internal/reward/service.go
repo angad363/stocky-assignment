@@ -191,3 +191,49 @@ func (s *RewardService) GetUserStats(ctx context.Context, userID int) (map[strin
 	return todaySummary, totalValue, nil
 }
 
+// PortfolioItem represents each stock holding for the user
+type PortfolioItem struct {
+	Symbol   string  `json:"symbol"`
+	Quantity float64 `json:"quantity"`
+	INRValue float64 `json:"inr_value"`
+}
+
+func (s *RewardService) GetUserPortfolio(ctx context.Context, userID int) ([]PortfolioItem, error) {
+	query := `
+		SELECT stock_symbol, SUM(quantity) AS total_quantity
+		FROM rewards
+		WHERE user_id = $1
+		GROUP BY stock_symbol
+	`
+	rows, err := s.db.QueryxContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var portfolio []PortfolioItem
+
+	for rows.Next() {
+		var symbol string
+		var qty float64
+		if err := rows.Scan(&symbol, &qty); err != nil {
+			continue
+		}
+
+		priceResp, err := s.priceSvc.GetStockPrice(symbol)
+		if err != nil {
+			continue
+		}
+
+		inrValue := qty * priceResp.Price
+		inrValue = math.Round(inrValue*100) / 100
+
+		portfolio = append(portfolio, PortfolioItem{
+			Symbol:   symbol,
+			Quantity: qty,
+			INRValue: inrValue,
+		})
+	}
+
+	return portfolio, nil
+}

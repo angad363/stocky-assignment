@@ -131,3 +131,28 @@ func (h *RewardHandler) GetUserStats(c *gin.Context) {
 		"portfolio_value_inr": totalValue,
 	})
 }
+
+// GetUserPortfolio returns all current holdings with INR values
+func (h *RewardHandler) GetUserPortfolio(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Param("userId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	ctx := context.Background()
+	portfolio, err := h.service.GetUserPortfolio(ctx, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch portfolio"})
+		return
+	}
+
+	if portfolio == nil {
+		portfolio = []PortfolioItem{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user_id":   userID,
+		"portfolio": portfolio,
+	})
+}
