@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/angad363/stocky-assignment/internal/price"
+	referral "github.com/angad363/stocky-assignment/internal/referrals"
 	"github.com/angad363/stocky-assignment/internal/reward"
 	"github.com/angad363/stocky-assignment/internal/users"
 	"github.com/gin-gonic/gin"
@@ -17,10 +18,8 @@ type Server struct {
 func NewServer(logger *logrus.Logger,  conn *sqlx.DB) *Server {
 	r := gin.Default()
 
-	// Initialize Redis for price service
 	price.InitRedis()
 
-	// Initialize price service
 	priceService := price.NewPriceService(price.RedisConn)
 	priceHandler := price.NewPriceHandler(priceService)
 
@@ -33,19 +32,22 @@ func NewServer(logger *logrus.Logger,  conn *sqlx.DB) *Server {
 	userService := users.NewUserService(conn, rewardService)
 	userHandler := users.NewUserHandler(userService)
 
+	referralService := referral.NewReferralService(conn, rewardService)
+	referralHandler := referral.NewReferralHandler(referralService)
 
 	s := &Server{
 		router: r,
 		logger: logger,
 	}
 
-	s.registerRoutes(priceHandler, rewardHandler, userHandler)
+	s.registerRoutes(priceHandler, rewardHandler, userHandler, referralHandler)
 	return s
 }
 
 func (s *Server) registerRoutes(priceHandler *price.PriceHandler,
 								rewardHandler *reward.RewardHandler,
 								userHandler *users.UserHandler,
+								referralHandler *referral.ReferralHandler,
 							) {
 	s.router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
@@ -57,6 +59,7 @@ func (s *Server) registerRoutes(priceHandler *price.PriceHandler,
 	s.router.GET("/today-stocks/:userId", rewardHandler.GetTodayRewards)
 	s.router.GET("/historical-inr/:userId", rewardHandler.GetHistoricalINR)
 	s.router.GET("/stats/:userId", rewardHandler.GetUserStats)
+	s.router.POST("/refer", referralHandler.CreateReferral)
 }
 
 func (s *Server) Start(port string) {

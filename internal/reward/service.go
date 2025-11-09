@@ -3,6 +3,7 @@ package reward
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 
@@ -119,6 +120,7 @@ func (s *RewardService) GetHistoricalINR(ctx context.Context, userID int) ([]His
 			continue
 		}
 		inrValue := r.Quantity * price.Price
+		inrValue = math.Round(inrValue*100) / 100
 
 		dateKey := r.RewardedAt.Format("2006-01-02")
 		dateTotals[dateKey] += inrValue
@@ -181,11 +183,11 @@ func (s *RewardService) GetUserStats(ctx context.Context, userID int) (map[strin
 			}
 			// handle rounding for INR precision
 			inr := qty * priceResp.Price
-			inr = float64(int(inr*100+0.5)) / 100 // round to 2 decimals
+			inr = float64(int(inr*100+0.5)) / 100
 			totalValue += inr
 		}
 	}
-
+	totalValue = math.Round(totalValue*100) / 100
 	return todaySummary, totalValue, nil
 }
 
