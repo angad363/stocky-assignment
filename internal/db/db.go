@@ -2,10 +2,9 @@ package db
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/angad363/stocky-assignment/internal/config"
-
+	"github.com/angad363/stocky-assignment/pkg/logger"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -16,11 +15,12 @@ func Connect(cfg *config.Config) *sqlx.DB {
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName,
 	)
 
+	logger.Log.Infof("Connecting to PostgreSQL at %s:%s...", cfg.DBHost, cfg.DBPort)
 	conn, err := sqlx.Connect("postgres", dbURL)
 	if err != nil {
-		log.Fatalf("Error connecting to DB: %v", err)
+		logger.Log.Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
 
-	log.Println("✅ Connected to PostgreSQL successfully!")
+	logger.Log.Info("Connected to PostgreSQL successfully")
 	return conn
 }

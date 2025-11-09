@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/angad363/stocky-assignment/internal/price"
 	referral "github.com/angad363/stocky-assignment/internal/referrals"
 	"github.com/angad363/stocky-assignment/internal/reward"
@@ -15,15 +17,34 @@ type Server struct {
 	logger *logrus.Logger
 }
 
-func NewServer(logger *logrus.Logger,  conn *sqlx.DB) *Server {
-	r := gin.Default()
+func NewServer(logger *logrus.Logger, conn *sqlx.DB) *Server {
+	r := gin.New()
+
+	r.Use(gin.Recovery())
+
+	// Global request logging middleware
+	r.Use(func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		duration := time.Since(start)
+
+		logger.WithFields(logrus.Fields{
+			"status":   c.Writer.Status(),
+			"method":   c.Request.Method,
+			"path":     c.Request.URL.Path,
+			"latency":  duration.String(),
+			"clientIP": c.ClientIP(),
+		}).Info("HTTP request processed")
+	})
+
+	logger.Info("🔧 Initializing Redis and Price services...")
 
 	price.InitRedis()
-
 	priceService := price.NewPriceService(price.RedisConn)
 	priceHandler := price.NewPriceHandler(priceService)
 
 	price.StartPriceUpdater(priceService, conn)
+	logger.Info("💹 Price updater started")
 
 	idemService := reward.NewIdempotencyService(price.RedisConn)
 	rewardService := reward.NewRewardService(conn, priceService)
@@ -41,16 +62,22 @@ func NewServer(logger *logrus.Logger,  conn *sqlx.DB) *Server {
 	}
 
 	s.registerRoutes(priceHandler, rewardHandler, userHandler, referralHandler)
+
+	logger.Info("✅ Routes registered successfully")
+
 	return s
 }
 
 func (s *Server) registerRoutes(priceHandler *price.PriceHandler,
-								rewardHandler *reward.RewardHandler,
-								userHandler *users.UserHandler,
-								referralHandler *referral.ReferralHandler,
-							) {
+	rewardHandler *reward.RewardHandler,
+	userHandler *users.UserHandler,
+	referralHandler *referral.ReferralHandler,
+) {
+	s.logger.Info("🛣 Registering routes...")
+
 	s.router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
+		s.logger.Debug("Health check endpoint called")
 	})
 
 	s.router.GET("/price", priceHandler.GetPrice)
@@ -62,9 +89,13 @@ func (s *Server) registerRoutes(priceHandler *price.PriceHandler,
 	s.router.POST("/refer", referralHandler.CreateReferral)
 	s.router.GET("/portfolio/:userId", rewardHandler.GetUserPortfolio)
 
+	s.logger.Info("📡 All API routes registered")
 }
 
 func (s *Server) Start(port string) {
-	s.logger.Infof("Starting server on port %s", port)
-	s.router.Run(":" + port)
+	s.logger.WithField("port", port).Info("Starting HTTP server")
+	err := s.router.Run(":" + port)
+	if err != nil {
+		s.logger.WithError(err).Fatal("Failed to start server")
+	}
 }
