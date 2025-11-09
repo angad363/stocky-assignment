@@ -87,3 +87,50 @@ func (s *RewardService) GetTodayRewards(ctx context.Context, userID int) ([]Rewa
 
 	return rewards, nil
 }
+
+func (s *RewardService) GetHistoricalINR(ctx context.Context, userID int) ([]HistoricalINR, error) {
+	rows, err := s.db.QueryxContext(ctx, `
+		SELECT stock_symbol, quantity, rewarded_at
+		FROM rewards
+		WHERE user_id = $1
+		  AND rewarded_at < CURRENT_DATE
+		ORDER BY rewarded_at ASC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	rewards := []Reward{}
+	for rows.Next() {
+		var r Reward
+		if err := rows.StructScan(&r); err != nil {
+			return nil, err
+		}
+		rewards = append(rewards, r)
+	}
+
+	// Group total INR per date
+	dateTotals := make(map[string]float64)
+
+	for _, r := range rewards {
+		price, err := s.priceSvc.GetStockPrice(r.StockSymbol)
+		if err != nil {
+			continue
+		}
+		inrValue := r.Quantity * price.Price
+
+		dateKey := r.RewardedAt.Format("2006-01-02")
+		dateTotals[dateKey] += inrValue
+	}
+
+	var historical []HistoricalINR
+	for date, total := range dateTotals {
+		historical = append(historical, HistoricalINR{
+			Date:     date,
+			TotalINR: total,
+		})
+	}
+
+	return historical, nil
+}

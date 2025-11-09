@@ -15,3 +15,8 @@ type RewardRequest struct {
 	Symbol   string  `json:"symbol,omitempty"`
 	Quantity float64 `json:"quantity"`
 }
+
+type HistoricalINR struct {
+	Date     string  `json:"date"`
+	TotalINR float64 `json:"total_inr"`
+}

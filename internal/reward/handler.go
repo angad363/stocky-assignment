@@ -78,3 +78,23 @@ func (h *RewardHandler) GetTodayRewards(c *gin.Context) {
 		"rewards_today": rewards,
 	})
 }
+
+func (h *RewardHandler) GetHistoricalINR(c *gin.Context) {
+	userIDParam := c.Param("userId")
+	userID, err := strconv.Atoi(userIDParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	data, err := h.service.GetHistoricalINR(context.Background(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch historical INR"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user_id":        userID,
+		"historical_inr": data,
+	})
+}

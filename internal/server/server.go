@@ -55,6 +55,7 @@ func (s *Server) registerRoutes(priceHandler *price.PriceHandler,
 	s.router.POST("/reward", rewardHandler.CreateReward)
 	s.router.POST("/register", userHandler.Register)
 	s.router.GET("/today-stocks/:userId", rewardHandler.GetTodayRewards)
+	s.router.GET("/historical-inr/:userId", rewardHandler.GetHistoricalINR)
 
 }
 
