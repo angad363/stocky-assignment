@@ -218,5 +218,5 @@ INFO[2025-11-09 12:51:14] Starting HTTP server port=8080
 ## 👨‍💻 Author
 
 **Angad Anil Gosain**  
-📧 angadgosain@gmail.com](mailto:angadgosain@gmail.com)  
+📧 [angadgosain@gmail.com](mailto:angadgosain@gmail.com)  
 🔗 [GitHub](https://github.com/angad363)
